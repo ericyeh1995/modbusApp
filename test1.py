@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import math
+from decimal import Decimal
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 from multiprocessing import Pool, TimeoutError
@@ -21,13 +22,15 @@ def runner(client):
     num_cycle = 0
     num_error = 0
     elap_time = 0
+    error = ''
     
     while True:
         time.sleep(0)
+        error = 'None'
         elap_time = time.time()-start_time
         
-        # if (elap_time > 60*60*10): # terminate test
-        #     break
+        if (elap_time > 60*60*10): # terminate test
+            break
         if time.time() > next_time:
             next_time += 1
         else:
@@ -37,18 +40,15 @@ def runner(client):
         
         try:
             reg = client.read_holding_registers(address=0, count=124, unit=1).registers
-            #print(reg)
         except ConnectionException:
-            print('Connection Exception')
+            error = 'Connection Exception'
             num_error += 1
-            continue
 
         
         num_cycle += 1
-        info = ('time elap:{:1.3f} | port:{} | pid:{} | tot cycle:{} | '
-                + 'data rate:{:1.1f}/sec | tot error:{} | error rate:{:1.3f}/10000cyc').format
+        info = ('time elap:{:1.3f} | port:{} | pid:{} | tot cycle:{} - {:1.1f}/sec | tot err:{} - {:.2E}/cyc | error:{}').format
         print(info(elap_time, client.port, os.getpid(), num_cycle,
-                   num_cycle/elap_time, num_error, 10000*num_error/num_cycle))
+                   num_cycle/elap_time, num_error, Decimal(num_error/num_cycle), error))
 
 
 if __name__ == "__main__":
@@ -65,7 +65,9 @@ if __name__ == "__main__":
             e = sys.exc_info()[0]
             print('Other error: {}'.format(e))
             pool.terminate()
-            if not DEBUG:
+            if DEBUG:
+                break
+            else:
                 continue
 
     print('Closing pools')
