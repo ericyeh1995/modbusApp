@@ -29,8 +29,9 @@ def runner(client):
         error = 'None'
         elap_time = time.time()-start_time
         
-        if (elap_time > 60*60*10): # terminate test
-            break
+        # if (elap_time > 60*60*10): # terminate test
+        #     break
+        
         if time.time() > next_time:
             next_time += 1
         else:

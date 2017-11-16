@@ -1,0 +1,20 @@
+# HOW TO: check if they are ignored:
+# git ls-files --others -i --exclude-standard
+
+# ? autosave
+*~
+
+# emacs autosave
+\#*#
+
+# versions
+*.v*
+
+# backups
+*bkup*
+
+# python
+__pycache__/
+
+# Intellij IDE
+.idea
