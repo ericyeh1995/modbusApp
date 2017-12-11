@@ -98,7 +98,7 @@ while True:
 
         actions = [
             {
-                "_index": "plc-" + stuff + "-" + datetime.now().strftime("%Y.%m.%d"),
+                "_index": "plc-{}".format(datetime.now().strftime("%Y.%m.%d")),
                 "_type": "document",
                 "_id": hash(datetime.now()),
                 "_source": json.dumps(formatted_data, default=json_serial)
