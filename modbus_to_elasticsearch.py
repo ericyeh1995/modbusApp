@@ -2,7 +2,7 @@ import csv
 import math
 import struct
 import json
-import datetime
+from datetime import datetime
 from time import sleep
 from collections import OrderedDict
 
@@ -85,7 +85,7 @@ tags = csv_to_dict('plc_tags.csv')
 mb = ModbusTcpClient('192.168.11.150', port=502, retries=3, timeout=3)
 es = Elasticsearch()
 mb.connect()
-time = datetime.datetime.now()
+time = datetime.now()
 
 while True:
     try:
