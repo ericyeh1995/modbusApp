@@ -5,9 +5,12 @@ import json
 import datetime
 from time import sleep
 from collections import OrderedDict
+
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
 
+from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 
 
 def decimals_to_float32(int1, int2):
@@ -79,25 +82,38 @@ def insert_data(tags, data):
 
 
 tags = csv_to_dict('plc_tags.csv')
-mb_client = ModbusTcpClient('192.168.11.150', port=502, retries=3, timeout=3)
-mb_client.connect()
+mb = ModbusTcpClient('192.168.11.150', port=502, retries=3, timeout=3)
+es = Elasticsearch()
+mb.connect()
 time = datetime.datetime.now()
 
 while True:
     try:
-        rr = mb_client.read_holding_registers(address=0,count=103,unit=1)
+        rr = mb.read_holding_registers(address=0,count=103,unit=1)
         assert(rr.function_code < 0x80), "register error"
 
         tags = insert_data(tags, rr.registers)
         formatted_data = {tag:tags[tag]['value'] for tag in tags if tags[tag]['Data Type'] != "Word"}
-        print(json.dumps(formatted_data, indent=4))
+        formatted_data["timestamp"] = datetime.utcnow()
+
+        actions = [
+            {
+                "_index": "plc-" + stuff + "-" + datetime.now().strftime("%Y.%m.%d"),
+                "_type": "document",
+                "_id": hash(datetime.now()),
+                "_source": json.dumps(formatted_data, default=json_serial)
+            }
+        ]
+        print("Indexed at {}".format(datetime.now().strftime('%c')))
+        helpers.bulk(es, actions)
 
     except ConnectionException:
-        print('connection error')
+        print('Error: Connection error')
 
     except KeyboardInterrupt:
+        print('Warning: Interrupted')
         raise
 
     sleep(1)
     
-mb_client.close()
+mb.close()
