@@ -3,6 +3,7 @@ import math
 import struct
 import json
 import datetime
+from time import sleep
 from collections import OrderedDict
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException
@@ -78,20 +79,25 @@ def insert_data(tags, data):
 
 
 tags = csv_to_dict('plc_tags.csv')
-client = ModbusTcpClient('192.168.0.52', port=502, retries=3, timeout=3)
-client.connect()
+mb_client = ModbusTcpClient('192.168.11.150', port=502, retries=3, timeout=3)
+mb_client.connect()
 time = datetime.datetime.now()
 
-try:
-    rr = client.read_holding_registers(address=0,count=103,unit=1)
-    assert(rr.function_code < 0x80), "register error"
+while True:
+    try:
+        rr = mb_client.read_holding_registers(address=0,count=103,unit=1)
+        assert(rr.function_code < 0x80), "register error"
 
-    tags = insert_data(tags, rr.registers)
-    formatted_data = {tag:tags[tag]['value'] for tag in tags if tags[tag]['Data Type'] != "Word"}
-    print(json.dumps(formatted_data, indent=4))
+        tags = insert_data(tags, rr.registers)
+        formatted_data = {tag:tags[tag]['value'] for tag in tags if tags[tag]['Data Type'] != "Word"}
+        print(json.dumps(formatted_data, indent=4))
 
-except ConnectionException:
-    print('connection error')
+    except ConnectionException:
+        print('connection error')
 
-finally:
-    client.close()
+    except KeyboardInterrupt:
+        raise
+
+    sleep(1)
+    
+mb_client.close()
