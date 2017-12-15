@@ -12,6 +12,7 @@ from pymodbus.exceptions import ConnectionException
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 
+import paho.mqtt.publish as publish
 
 def decimals_to_float32(int1, int2):
     """Convert to float
@@ -102,17 +103,18 @@ while True:
         tags = insert_data(tags, rr.registers)
         formatted_data = {tag:tags[tag]['value'] for tag in tags if tags[tag]['Data Type'] != "Word"}
         formatted_data["timestamp"] = datetime.utcnow()
+        actions = 
+        {
+            "_index": "plc-{}".format(datetime.now().strftime("%Y.%m.%d")),
+            "_type": "document",
+            "_id": hash(datetime.now()),
+            "_source": json.dumps(formatted_data, default=json_serial)
+        }
+        
+        publish.single("aspm1188/data", actions, hostname="test.mosquitto.org")
 
-        actions = [
-            {
-                "_index": "plc-{}".format(datetime.now().strftime("%Y.%m.%d")),
-                "_type": "document",
-                "_id": hash(datetime.now()),
-                "_source": json.dumps(formatted_data, default=json_serial)
-            }
-        ]
         print("Indexed at {}".format(datetime.now().strftime('%c')))
-        helpers.bulk(es, actions)
+        helpers.bulk(es, [actions])
 
     except ConnectionException:
         print('Error: Connection error')
