@@ -16,5 +16,8 @@
 # python
 __pycache__/
 
+# jupyter notebook
+.ipynb_checkpoints
+
 # Intellij IDE
 .idea
