@@ -2,7 +2,7 @@ import csv
 import math
 import struct
 import json
-from datetime import datetime
+from datetime import datetime, date
 from time import sleep
 from collections import OrderedDict
 
@@ -12,7 +12,7 @@ from pymodbus.exceptions import ConnectionException
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 
-import paho.mqtt.publish as publish
+import paho.mqtt.client as mqtt
 
 def decimals_to_float32(int1, int2):
     """Convert to float
@@ -91,8 +91,13 @@ def insert_data(tags, data):
 
 tags = csv_to_dict('plc_tags.csv')
 mb = ModbusTcpClient('192.168.11.150', port=502, retries=3, timeout=3)
-es = Elasticsearch()
 mb.connect()
+
+es = Elasticsearch()
+
+mqttc = mqtt.Client()
+mqttc.connect("test.mosquitto.org", 1883, 60)
+
 time = datetime.now()
 
 while True:
@@ -103,15 +108,14 @@ while True:
         tags = insert_data(tags, rr.registers)
         formatted_data = {tag:tags[tag]['value'] for tag in tags if tags[tag]['Data Type'] != "Word"}
         formatted_data["timestamp"] = datetime.utcnow()
-        actions = 
-        {
+        actions = {
             "_index": "plc-{}".format(datetime.now().strftime("%Y.%m.%d")),
             "_type": "document",
             "_id": hash(datetime.now()),
             "_source": json.dumps(formatted_data, default=json_serial)
         }
         
-        publish.single("aspm1188/data", actions, hostname="test.mosquitto.org")
+        mqttc.publish("aspm1188/data", json.dumps(actions, sort_keys=True, indent=4))
 
         print("Indexed at {}".format(datetime.now().strftime('%c')))
         helpers.bulk(es, [actions])
